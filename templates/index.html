@@ -1,0 +1,220 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>New Zealand Labour Market Dashboard (2024+)</title>
+    <!-- Tailwind CSS -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <!-- Chart.js CDN -->
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <!-- Chart.js DataLabels Plugin CDN -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/chartjs-plugin-datalabels/2.2.0/chartjs-plugin-datalabels.min.js"></script>
+</head>
+<body class="bg-[#191919] text-[#dfdfdf] font-sans min-h-screen flex flex-col justify-between p-6">
+
+    <!-- Header -->
+    <header class="w-full max-w-7xl mx-auto py-3 border-b border-[#2f2f2f] flex justify-between items-center">
+        <div>
+            <h1 class="text-xl font-semibold tracking-tight text-[#fbfbfb]">NZD Labour Market Intelligence</h1>
+            <p class="text-xs text-[#9b9b9b]">Household Labour Force Survey — Seasonally Adjusted (2024 – Present)</p>
+        </div>
+        <div class="text-xs bg-[#202020] border border-[#333333] px-3 py-1.5 rounded-md text-[#c8c8c8]">
+            Latest Headline Unemployment: <span class="text-[#eb5757] font-bold">5.6%</span>
+        </div>
+    </header>
+
+    <!-- Main Content / Three Independent Charts -->
+    <main class="w-full max-w-7xl mx-auto my-6 space-y-8">
+        
+        <!-- Chart 1: Unemployment Rate -->
+        <section class="bg-[#202020] border border-[#2f2f2f] rounded-lg p-6 shadow-xl">
+            <div class="flex justify-between items-center mb-4">
+                <h2 class="text-sm font-medium text-[#c8c8c8]">1. Unemployment Rate (%)</h2>
+                <div class="space-x-1">
+                    <button onclick="switchType('unemp', 'bar')" id="btn-unemp-bar" class="text-[11px] bg-[#2f2f2f] border border-[#3f3f3f] text-[#fbfbfb] px-2.5 py-1 rounded font-medium">Bar</button>
+                    <button onclick="switchType('unemp', 'line')" id="btn-unemp-line" class="text-[11px] bg-transparent text-[#888] px-2.5 py-1 rounded font-medium hover:text-[#fbfbfb]">Line</button>
+                </div>
+            </div>
+            <div class="relative h-[400px] w-full">
+                <canvas id="unempChart"></canvas>
+            </div>
+        </section>
+
+        <!-- Chart 2: Employment Rate -->
+        <section class="bg-[#202020] border border-[#2f2f2f] rounded-lg p-6 shadow-xl">
+            <div class="flex justify-between items-center mb-4">
+                <h2 class="text-sm font-medium text-[#c8c8c8]">2. Employment Rate (%)</h2>
+                <div class="space-x-1">
+                    <button onclick="switchType('employ', 'bar')" id="btn-employ-bar" class="text-[11px] bg-[#2f2f2f] border border-[#3f3f3f] text-[#fbfbfb] px-2.5 py-1 rounded font-medium">Bar</button>
+                    <button onclick="switchType('employ', 'line')" id="btn-employ-line" class="text-[11px] bg-transparent text-[#888] px-2.5 py-1 rounded font-medium hover:text-[#fbfbfb]">Line</button>
+                </div>
+            </div>
+            <div class="relative h-[400px] w-full">
+                <canvas id="employChart"></canvas>
+            </div>
+        </section>
+
+        <!-- Chart 3: Labour Force Participation Rate -->
+        <section class="bg-[#202020] border border-[#2f2f2f] rounded-lg p-6 shadow-xl">
+            <div class="flex justify-between items-center mb-4">
+                <h2 class="text-sm font-medium text-[#c8c8c8]">3. Labour Force Participation Rate (%)</h2>
+                <div class="space-x-1">
+                    <button onclick="switchType('partic', 'bar')" id="btn-partic-bar" class="text-[11px] bg-[#2f2f2f] border border-[#3f3f3f] text-[#fbfbfb] px-2.5 py-1 rounded font-medium">Bar</button>
+                    <button onclick="switchType('partic', 'line')" id="btn-partic-line" class="text-[11px] bg-transparent text-[#888] px-2.5 py-1 rounded font-medium hover:text-[#fbfbfb]">Line</button>
+                </div>
+            </div>
+            <div class="relative h-[400px] w-full">
+                <canvas id="particChart"></canvas>
+            </div>
+        </section>
+
+    </main>
+
+    <!-- Footer -->
+    <footer class="w-full max-w-7xl mx-auto text-center text-xs text-[#666666] py-2">
+        Stats NZ Infoshare Integration
+    </footer>
+
+    <!-- Dashboard Rendering Script -->
+    <script>
+        let charts = {};
+        let currentTypes = { unemp: 'bar', employ: 'bar', partic: 'bar' };
+        let cachedData = [];
+
+        async function loadDashboard() {
+            try {
+                const response = await fetch('/api/data');
+                cachedData = await response.json();
+
+                if (cachedData.error) {
+                    console.error(cachedData.error);
+                    return;
+                }
+
+                renderChart('unemp', 'Unemployment Rate (%)', item => item.total_unemp, item => item.male_unemp, item => item.female_unemp);
+                renderChart('employ', 'Employment Rate (%)', item => item.total_employ, item => item.male_employ, item => item.female_employ);
+                renderChart('partic', 'Participation Rate (%)', item => item.total_partic, item => item.male_partic, item => item.female_partic);
+
+            } catch (err) {
+                console.error("Failed to load dashboard data:", err);
+            }
+        }
+
+        function renderChart(key, labelPrefix, totalFn, maleFn, femaleFn) {
+            const ctx = document.getElementById(key + 'Chart').getContext('2d');
+            const chartType = currentTypes[key];
+
+            const labels = cachedData.map(item => item.period);
+            const totals = cachedData.map(totalFn);
+            const males = cachedData.map(maleFn);
+            const females = cachedData.map(femaleFn);
+
+            if (charts[key]) {
+                charts[key].destroy();
+            }
+
+            charts[key] = new Chart(ctx, {
+                type: chartType,
+                data: {
+                    labels: labels,
+                    datasets: [
+                        {
+                            label: 'Total ' + labelPrefix,
+                            data: totals,
+                            backgroundColor: 'rgba(235, 87, 87, 0.85)',
+                            borderColor: '#eb5757',
+                            borderWidth: chartType === 'line' ? 2 : 1,
+                            borderRadius: chartType === 'bar' ? 4 : 0,
+                            tension: 0.2
+                        },
+                        {
+                            label: 'Male ' + labelPrefix,
+                            data: males,
+                            backgroundColor: 'rgba(45, 156, 219, 0.85)',
+                            borderColor: '#2d9cdb',
+                            borderWidth: chartType === 'line' ? 2 : 1,
+                            borderRadius: chartType === 'bar' ? 4 : 0,
+                            tension: 0.2
+                        },
+                        {
+                            label: 'Female ' + labelPrefix,
+                            data: females,
+                            backgroundColor: 'rgba(242, 201, 76, 0.85)',
+                            borderColor: '#f2c94c',
+                            borderWidth: chartType === 'line' ? 2 : 1,
+                            borderRadius: chartType === 'bar' ? 4 : 0,
+                            tension: 0.2
+                        }
+                    ]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    plugins: {
+                        datalabels: {
+                            display: function(context) {
+                                return context.chart.config.type === 'bar';
+                            },
+                            color: '#fbfbfb',
+                            font: { size: 10, weight: 'bold' },
+                            anchor: 'end',
+                            align: 'top',
+                            formatter: function(value) {
+                                return value !== null ? value + '%' : '';
+                            }
+                        },
+                        legend: {
+                            position: 'top',
+                            labels: { color: '#b2b2b2', font: { size: 11 } }
+                        },
+                        tooltip: {
+                            backgroundColor: '#191919',
+                            titleColor: '#ffffff',
+                            bodyColor: '#dfdfdf',
+                            borderColor: '#333333',
+                            borderWidth: 1,
+                            padding: 10
+                        }
+                    },
+                    scales: {
+                        x: {
+                            grid: { color: 'rgba(255, 255, 255, 0.04)' },
+                            ticks: { color: '#888888', font: { size: 11 } }
+                        },
+                        y: {
+                            grid: { color: 'rgba(255, 255, 255, 0.04)' },
+                            ticks: { color: '#888888' }
+                        }
+                    }
+                },
+                plugins: [ChartDataLabels]
+            });
+        }
+
+        function switchType(chartKey, type) {
+            currentTypes[chartKey] = type;
+            const btnBar = document.getElementById(`btn-${chartKey}-bar`);
+            const btnLine = document.getElementById(`btn-${chartKey}-line`);
+
+            if (type === 'bar') {
+                btnBar.className = "text-[11px] bg-[#2f2f2f] border border-[#3f3f3f] text-[#fbfbfb] px-2.5 py-1 rounded font-medium";
+                btnLine.className = "text-[11px] bg-transparent text-[#888] px-2.5 py-1 rounded font-medium hover:text-[#fbfbfb]";
+            } else {
+                btnLine.className = "text-[11px] bg-[#2f2f2f] border border-[#3f3f3f] text-[#fbfbfb] px-2.5 py-1 rounded font-medium";
+                btnBar.className = "text-[11px] bg-transparent text-[#888] px-2.5 py-1 rounded font-medium hover:text-[#fbfbfb]";
+            }
+
+            if (chartKey === 'unemp') {
+                renderChart('unemp', 'Unemployment Rate (%)', item => item.total_unemp, item => item.male_unemp, item => item.female_unemp);
+            } else if (chartKey === 'employ') {
+                renderChart('employ', 'Employment Rate (%)', item => item.total_employ, item => item.male_employ, item => item.female_employ);
+            } else if (chartKey === 'partic') {
+                renderChart('partic', 'Participation Rate (%)', item => item.total_partic, item => item.male_partic, item => item.female_partic);
+            }
+        }
+
+        loadDashboard();
+    </script>
+</body>
+</html>
