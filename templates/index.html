@@ -36,7 +36,7 @@
                     <button onclick="switchType('unemp', 'line')" id="btn-unemp-line" class="text-[11px] bg-transparent text-[#888] px-2.5 py-1 rounded font-medium hover:text-[#fbfbfb]">Line</button>
                 </div>
             </div>
-            <div class="relative h-[400px] w-full">
+            <div class="relative h-[320px] w-full">
                 <canvas id="unempChart"></canvas>
             </div>
         </section>
@@ -50,7 +50,7 @@
                     <button onclick="switchType('employ', 'line')" id="btn-employ-line" class="text-[11px] bg-transparent text-[#888] px-2.5 py-1 rounded font-medium hover:text-[#fbfbfb]">Line</button>
                 </div>
             </div>
-            <div class="relative h-[400px] w-full">
+            <div class="relative h-[320px] w-full">
                 <canvas id="employChart"></canvas>
             </div>
         </section>
@@ -64,7 +64,7 @@
                     <button onclick="switchType('partic', 'line')" id="btn-partic-line" class="text-[11px] bg-transparent text-[#888] px-2.5 py-1 rounded font-medium hover:text-[#fbfbfb]">Line</button>
                 </div>
             </div>
-            <div class="relative h-[400px] w-full">
+            <div class="relative h-[320px] w-full">
                 <canvas id="particChart"></canvas>
             </div>
         </section>
@@ -92,16 +92,16 @@
                     return;
                 }
 
-                renderChart('unemp', 'Unemployment Rate (%)', item => item.total_unemp, item => item.male_unemp, item => item.female_unemp);
-                renderChart('employ', 'Employment Rate (%)', item => item.total_employ, item => item.male_employ, item => item.female_employ);
-                renderChart('partic', 'Participation Rate (%)', item => item.total_partic, item => item.male_partic, item => item.female_partic);
+                renderChart('unemp', 'Unemployment Rate (%)', item => item.total_unemp, item => item.male_unemp, item => item.female_unemp, 3);
+                renderChart('employ', 'Employment Rate (%)', item => item.total_employ, item => item.male_employ, item => item.female_employ, 50);
+                renderChart('partic', 'Participation Rate (%)', item => item.total_partic, item => item.male_partic, item => item.female_partic, 50);
 
             } catch (err) {
                 console.error("Failed to load dashboard data:", err);
             }
         }
 
-        function renderChart(key, labelPrefix, totalFn, maleFn, femaleFn) {
+        function renderChart(key, labelPrefix, totalFn, maleFn, femaleFn, yMin) {
             const ctx = document.getElementById(key + 'Chart').getContext('2d');
             const chartType = currentTypes[key];
 
@@ -183,6 +183,7 @@
                             ticks: { color: '#888888', font: { size: 11 } }
                         },
                         y: {
+                            min: yMin,
                             grid: { color: 'rgba(255, 255, 255, 0.04)' },
                             ticks: { color: '#888888' }
                         }
@@ -206,11 +207,11 @@
             }
 
             if (chartKey === 'unemp') {
-                renderChart('unemp', 'Unemployment Rate (%)', item => item.total_unemp, item => item.male_unemp, item => item.female_unemp);
+                renderChart('unemp', 'Unemployment Rate (%)', item => item.total_unemp, item => item.male_unemp, item => item.female_unemp, 3);
             } else if (chartKey === 'employ') {
-                renderChart('employ', 'Employment Rate (%)', item => item.total_employ, item => item.male_employ, item => item.female_employ);
+                renderChart('employ', 'Employment Rate (%)', item => item.total_employ, item => item.male_employ, item => item.female_employ, 50);
             } else if (chartKey === 'partic') {
-                renderChart('partic', 'Participation Rate (%)', item => item.total_partic, item => item.male_partic, item => item.female_partic);
+                renderChart('partic', 'Participation Rate (%)', item => item.total_partic, item => item.male_partic, item => item.female_partic, 50);
             }
         }
 
